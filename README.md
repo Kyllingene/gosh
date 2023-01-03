@@ -21,6 +21,6 @@ This project is under the MIT license (see LICENSE.txt), as are all dependencies
 
 ### dependencies
 
-[cod](https://crates.io/crates/cod) - color for warning/error messages
-[dirs](https://crates.io/crates/dirs) - finding the home directory
-[liner](https://crates.io/crates/liner) - input handling + history
+- [cod](https://crates.io/crates/cod) - color for warning/error messages
+- [dirs](https://crates.io/crates/dirs) - finding the home directory
+- [liner](https://crates.io/crates/liner) - input handling + history

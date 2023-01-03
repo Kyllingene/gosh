@@ -48,6 +48,8 @@ impl Shell {
                 if let Ok(_) = file.read_to_string(&mut rc) {
                     self.eval(rc);
                 }
+            } else {
+                Shell::warn(&"couldn't open ~/.goshrc");
             }
         } else {
             Shell::warn(&"couldn't find ~/.goshrc");
@@ -130,7 +132,7 @@ impl Shell {
                     };
 
                     if args.clone().peekable().peek().is_none() {
-                        Shell::error(&"missing target");
+                        Shell::error(&"missing alias target");
                         break;
                     }
 

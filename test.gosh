@@ -1,0 +1,3 @@
+#!/bin/gosh
+echo Listing out \~...
+ls ~

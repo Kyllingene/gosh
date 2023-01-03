@@ -4,11 +4,12 @@ This is a learning project. I started with [this tutorial](https://www.joshmcgui
 
 ## features
 
-- basic builtins - `cd`, `exit`
+- basic builtins - `cd`, `exit`, `echo`
 - aliases - `alias <alias> <command [args...]>`
 - a pretty decent input (provided by [this wonderful crate](https://crates.io/crates/liner))
     - history, with a histfile
 - a `.goshrc`
+- scripts (`gosh <script>`, shebangs)
 
 ### todo
 

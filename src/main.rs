@@ -76,13 +76,17 @@ impl Shell {
         exit(0);
     }
 
-    fn eval(&mut self, lines: String) {
+    pub fn eval(&mut self, lines: String) {
         for line in lines.split_terminator("\n") {
             self.line(String::from(line));
         }
     }
 
     fn line(&mut self, line: String) {
+        if line.starts_with("#") {
+            return
+        }
+
         let home = home_dir()
             .unwrap_or("./".into())
             .to_str()
@@ -145,6 +149,10 @@ impl Shell {
                     for (k, v) in self.aliases.pairs() {
                         println!("{}: {}", k, v);
                     }
+                }
+
+                "echo" => {
+                    println!("{}", args.collect::<Vec<&str>>().join(" "));
                 }
 
                 mut command => {
@@ -286,5 +294,30 @@ impl Aliases {
 fn main() {
     let mut shell = Shell::new(String::from("/home/kyllingene"));
 
-    shell.main();
+    let args: Vec<String> = env::args().collect();
+    if args.len() > 1 {
+        if &args[1] == "--help" || &args[1] == "-h" {
+            println!("usage: {} [--help | -h] [script]", args[0]);
+            exit(0);
+        } else {
+            let mut file = match File::open(&args[1]) {
+                Ok(file) => file,
+
+                Err(e) => {
+                    Shell::error(&e);
+                    exit(e.raw_os_error().unwrap_or(1));
+                }
+            };
+
+            let mut data = String::new();
+            if let Err(e) = file.read_to_string(&mut data) {
+                Shell::error(&e);
+                exit(e.raw_os_error().unwrap_or(1));
+            }
+
+            shell.eval(data);
+        }
+    } else {
+        shell.main();
+    }
 }

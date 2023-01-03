@@ -1,5 +1,4 @@
 use std::fmt::Display;
-use std::io::{stdin, stdout, Write};
 use std::process::{Child, Command, Stdio};
 
 use std::env;
@@ -7,6 +6,8 @@ use std::env;
 use std::path::Path;
 
 use liner::Context;
+
+use dirs::home_dir;
 
 // TODO: figure out how to do this with a HashMap without the borrowing issues
 #[derive(Debug, Clone)]
@@ -48,44 +49,6 @@ impl Aliases {
     }
 }
 
-// struct History {
-//     lines: Vec<String>,
-//     index: usize,
-// }
-
-// impl History {
-//     pub fn new() -> Self {
-//         History {
-//             lines: Vec::new(),
-//             index: 0,
-//         }
-//     }
-
-//     pub fn add(&mut self, line: String) {
-//         self.lines.insert(self.lines.len(), line);
-//     }
-
-//     pub fn get(&self) -> String {
-//         if self.index == self.lines.len() {
-//             String::new()
-//         } else {
-//             self.lines[self.index].clone()
-//         }
-//     }
-
-//     pub fn up(&mut self) {
-//         if self.index > 0 {
-//             self.index -= 1;
-//         }
-//     }
-
-//     pub fn down(&mut self) {
-//         if self.index < self.lines.len() {
-//             self.index += 1;
-//         }
-//     }
-// }
-
 fn error(e: &dyn Display) {
     cod::color_fg(1);
     print!("error: ");
@@ -98,16 +61,18 @@ fn main() {
     let mut con = Context::new();
 
     loop {
-        // print!(" ➜ ");
-        // stdout().flush().unwrap();
 
-        // let mut input = String::new();
-        // stdin().read_line(&mut input).unwrap();
-
-        let input = con.read_line(" ➜ ", &mut |_| {}).unwrap();
+        let mut input = match con.read_line(" ➜ ", &mut |_| {}) {
+            Ok(input) => input,
+            Err(_) => {
+                return
+            }
+         };
 
         if input.is_empty() {
             continue
+        } else {
+            input = input.replace("~", home_dir().unwrap_or("./".into()).to_str().unwrap());
         }
 
         con.history.push(input.clone().into()).unwrap();

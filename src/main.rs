@@ -84,7 +84,7 @@ impl Shell {
 
     fn line(&mut self, line: String) {
         if line.starts_with("#") {
-            return
+            return;
         }
 
         let home = home_dir()

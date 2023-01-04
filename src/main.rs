@@ -7,7 +7,7 @@ use std::{env, path};
 
 use std::path::Path;
 
-use liner::Context;
+use liner::{Context, KeyBindings};
 
 use dirs::home_dir;
 
@@ -124,6 +124,28 @@ impl Shell {
 
                 "exit" => {
                     self.exit();
+                }
+
+                "mode" => {
+                    let mode = match args.next() {
+                        Some(mode) => mode,
+                        None => {
+                            Shell::error(&"missing mode");
+                            break;
+                        }
+                    };
+
+                    match mode {
+                        "vi" => {
+                            self.context.key_bindings = KeyBindings::Vi;
+                        }
+                        "emacs" => {
+                            self.context.key_bindings = KeyBindings::Emacs;
+                        }
+                        _ => {
+                            Shell::error(&"invalid mode");
+                        }
+                    }
                 }
 
                 "alias" => {

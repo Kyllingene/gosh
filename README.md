@@ -8,6 +8,7 @@ This is a learning project. I started with [this tutorial](https://www.joshmcgui
 - aliases - `alias <alias> <command [args...]>`
 - a pretty decent input (provided by [this wonderful crate](https://crates.io/crates/liner))
     - history, with a histfile
+    - vi- and emacs-like modes (`mode <vi | emacs>`)
 - a `.goshrc`
 - scripts (`gosh <script>`, shebangs)
 

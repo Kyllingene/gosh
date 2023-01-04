@@ -10,3 +10,4 @@ license = "MIT"
 cod = "3.1"
 dirs = "4.0.0"
 liner = { git = "https://github.com/Kyllingene/liner" }
+regex = "1.7.0"

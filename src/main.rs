@@ -7,6 +7,7 @@ use std::{env, path};
 
 use dirs::home_dir;
 use liner::{Context, KeyBindings};
+use regex::Regex;
 
 trait SplitWithQuotes {
     type Output;
@@ -103,6 +104,39 @@ impl Aliases {
     }
 }
 
+struct Git {}
+
+impl Git {
+    pub fn branch() -> Option<String> {
+        let result =
+            String::from_utf8(Command::new("git").arg("status").output().unwrap().stdout).unwrap();
+
+        if !result.starts_with("On branch ") {
+            return None;
+        }
+
+        let re = Regex::new("On branch (.*)\n").unwrap();
+        for branch in re.captures_iter(&result) {
+            return Some(String::from(&branch[1]));
+        }
+
+        None
+    }
+
+    pub fn dirty() -> Option<bool> {
+        let result =
+            String::from_utf8(Command::new("git").arg("diff").arg("--cached").output().unwrap().stdout).unwrap();
+
+        if result.starts_with("warning: Not a git repository") {
+            return None;
+        } else if result.starts_with("diff") {
+            return Some(true);
+        } else {
+            return Some(false);
+        }
+    }
+}
+
 struct Prompt {
     pub template: String,
     pub formatter: fn(String) -> String,
@@ -122,6 +156,33 @@ impl Prompt {
 
     pub fn basic_prompt(template: String) -> String {
         template
+    }
+
+    pub fn reactive_prompt(template: String) -> String {
+        let mut out = template.replace("{pwd}", env::current_dir().unwrap().to_str().unwrap());
+
+        out = out.replace(
+            "{pwd-end}",
+            env::current_dir()
+                .unwrap()
+                .iter()
+                .last()
+                .unwrap()
+                .to_str()
+                .unwrap(),
+        );
+
+        let branch = Git::branch();
+        if branch.is_some() {
+            out = out.replace("{branch}", &branch.unwrap());
+            if Git::dirty().unwrap() {
+                out = out.replace("{dirty}", "!");
+            } else {
+                out = out.replace("{dirty}", "");
+            }
+        }
+
+        out
     }
 }
 
@@ -240,6 +301,13 @@ impl Shell {
                     self.exit();
                 }
 
+                "exec" => {
+                    // TODO: is there a better way?
+                    let command = args.map(|s| s.clone()).collect::<Vec<String>>().join(" ");
+                    self.line(command);
+                    self.exit();
+                }
+
                 "set-mode" => {
                     let mode = match args.next() {
                         Some(mode) => mode,
@@ -266,6 +334,28 @@ impl Shell {
                     let template = args.map(|s| s.clone()).collect::<Vec<String>>().join(" ");
 
                     self.prompt.template = template;
+                }
+
+                "set-prompt-mode" => {
+                    let mode = match args.next() {
+                        Some(mode) => mode,
+                        None => {
+                            Shell::error(&"missing mode");
+                            break;
+                        }
+                    };
+
+                    match mode.as_str() {
+                        "basic" => {
+                            self.prompt.formatter = Prompt::basic_prompt;
+                        }
+                        "reactive" => {
+                            self.prompt.formatter = Prompt::reactive_prompt;
+                        }
+                        _ => {
+                            Shell::error(&"invalid mode");
+                        }
+                    }
                 }
 
                 "alias" => {

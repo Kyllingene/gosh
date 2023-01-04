@@ -4,7 +4,7 @@ This is a learning project. I started with [this tutorial](https://www.joshmcgui
 
 ## features
 
-- basic builtins - `cd`, `exit`, `echo`
+- basic builtins - `cd`, `exit`, `echo`, `exec`
 - aliases - `alias <alias> <command [args...]>`
 - a pretty decent input (provided by [this wonderful crate](https://crates.io/crates/liner))
     - history, with a histfile
@@ -18,9 +18,8 @@ This is a learning project. I started with [this tutorial](https://www.joshmcgui
 ### todo
 
 - clean up the aliases
-- add `exec`
 - add more customization options
-    - reactive prompt
+    - more prompt replacements
 - wildcard globbing
 
 ### license + contributing
@@ -32,3 +31,4 @@ This project is under the MIT license (see LICENSE.txt), as are all dependencies
 - [cod](https://crates.io/crates/cod) - color for warning/error messages
 - [dirs](https://crates.io/crates/dirs) - finding the home directory
 - [liner](https://crates.io/crates/liner) - input handling + history
+- [regex](https://crates.io/crates/regex) - getting git status

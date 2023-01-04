@@ -1,21 +1,135 @@
 use std::fmt::Display;
 use std::fs::File;
 use std::io::Read;
+use std::path::Path;
 use std::process::{exit, Child, Command, Stdio};
-
 use std::{env, path};
 
-use std::path::Path;
-
+use dirs::home_dir;
 use liner::{Context, KeyBindings};
 
-use dirs::home_dir;
+trait SplitWithQuotes {
+    type Output;
+
+    fn split_whitespace_quotes(&self) -> Vec<Self::Output>;
+}
+
+impl SplitWithQuotes for &str {
+    type Output = String;
+
+    fn split_whitespace_quotes(&self) -> Vec<Self::Output> {
+        let mut split = Vec::new();
+        let mut current = String::new();
+
+        let mut quoted = false;
+
+        for ch in self.chars() {
+            match ch {
+                '"' => {
+                    if !current.is_empty() {
+                        split.push(current.clone());
+                    }
+                    current.clear();
+                    quoted = !quoted;
+                }
+                ' ' => {
+                    if quoted {
+                        current.push(' ');
+                    } else {
+                        if !current.is_empty() {
+                            split.push(current.clone());
+                        }
+                        current.clear();
+                    }
+                }
+                ch => {
+                    current.push(ch);
+                }
+            }
+        }
+
+        if !current.is_empty() {
+            split.push(current.clone());
+        }
+
+        split
+    }
+}
+
+// TODO: figure out how to do this with a HashMap without the borrowing issues
+#[derive(Debug, Clone)]
+struct Aliases {
+    keys: Vec<String>,
+    vals: Vec<String>,
+}
+
+impl Aliases {
+    pub fn new() -> Self {
+        Aliases {
+            keys: Vec::new(),
+            vals: Vec::new(),
+        }
+    }
+
+    pub fn set(&mut self, key: String, val: String) {
+        for i in 0..self.keys.len() {
+            if self.keys[i] == key {
+                self.vals[i] = val;
+                return;
+            }
+        }
+
+        self.keys.insert(0, key);
+        self.vals.insert(0, val);
+    }
+
+    pub fn get(&self, key: String) -> Option<String> {
+        for i in 0..self.keys.len() {
+            if self.keys[i] == key {
+                return Some(self.vals[i].clone());
+            }
+        }
+
+        None
+    }
+
+    pub fn pairs(&self) -> Vec<(String, String)> {
+        let mut out = Vec::new();
+        for i in 0..self.keys.len() {
+            out.insert(out.len(), (self.keys[i].clone(), self.vals[i].clone()));
+        }
+
+        out
+    }
+}
+
+struct Prompt {
+    pub template: String,
+    pub formatter: fn(String) -> String,
+}
+
+impl Prompt {
+    pub fn new(template: String, formatter: fn(String) -> String) -> Self {
+        Prompt {
+            template,
+            formatter,
+        }
+    }
+
+    pub fn display(&self) -> String {
+        (self.formatter)(self.template.clone())
+    }
+
+    pub fn basic_prompt(template: String) -> String {
+        template
+    }
+}
 
 struct Shell {
     aliases: Aliases,
     context: Context,
     home: String,
-    prompt: String,
+    prompt: Prompt,
 }
 
 impl Shell {
@@ -29,11 +143,13 @@ impl Shell {
             Shell::warn(&"failed to load history");
         });
 
+        let prompt = Prompt::new(String::from(" ➜ "), Prompt::basic_prompt);
+
         Shell {
             aliases: Aliases::new(),
             context,
             home,
-            prompt: String::from(" ➜ "),
+            prompt,
         }
     }
 
@@ -56,7 +172,7 @@ impl Shell {
         }
 
         loop {
-            let input = match self.context.read_line(self.prompt.clone(), &mut |_| {}) {
+            let input = match self.context.read_line(self.prompt.display(), &mut |_| {}) {
                 Ok(input) => input,
                 Err(_) => break,
             };
@@ -101,11 +217,9 @@ impl Shell {
         let mut previous_command = None;
 
         while let Some(command) = commands.next() {
-            let mut parts = command
-                .trim()
-                .split_whitespace()
-                .collect::<Vec<_>>()
-                .into_iter();
+            let parts_vec = command.trim().split_whitespace_quotes();
+            let mut parts = parts_vec.iter();
+
             let command = parts.next();
             let mut args = parts;
 
@@ -113,7 +227,7 @@ impl Shell {
                 self.exit();
             }
 
-            match command.unwrap() {
+            match command.unwrap().as_str() {
                 "cd" => {
                     let new_dir = args.peekable().peek().map_or("/", |x| *x);
                     let root = Path::new(new_dir);
@@ -126,7 +240,7 @@ impl Shell {
                     self.exit();
                 }
 
-                "mode" => {
+                "set-mode" => {
                     let mode = match args.next() {
                         Some(mode) => mode,
                         None => {
@@ -135,7 +249,7 @@ impl Shell {
                         }
                     };
 
-                    match mode {
+                    match mode.as_str() {
                         "vi" => {
                             self.context.key_bindings = KeyBindings::Vi;
                         }
@@ -146,6 +260,12 @@ impl Shell {
                             Shell::error(&"invalid mode");
                         }
                     }
+                }
+
+                "set-prompt" => {
+                    let template = args.map(|s| s.clone()).collect::<Vec<String>>().join(" ");
+
+                    self.prompt.template = template;
                 }
 
                 "alias" => {
@@ -162,7 +282,7 @@ impl Shell {
                         break;
                     }
 
-                    let target: String = args.collect::<Vec<_>>().join(" ");
+                    let target: String = args.map(|s| s.clone()).collect::<Vec<_>>().join(" ");
 
                     self.aliases.set(String::from(alias), target);
                 }
@@ -174,7 +294,10 @@ impl Shell {
                 }
 
                 "echo" => {
-                    println!("{}", args.collect::<Vec<&str>>().join(" "));
+                    println!(
+                        "{}",
+                        args.map(|s| s.clone()).collect::<Vec<String>>().join(" ")
+                    );
                 }
 
                 mut command => {
@@ -183,16 +306,17 @@ impl Shell {
                         .get(String::from(command))
                         .unwrap_or(String::from(command));
 
+                    let mut new_args: Vec<String>;
                     if cmd.as_str().contains(' ') {
                         let mut alias_args = cmd.as_str().split_whitespace();
                         command = alias_args.next().unwrap();
 
-                        let mut new_args: Vec<&str> = args.collect();
+                        new_args = args.map(|s| s.clone()).collect();
                         for arg in alias_args {
-                            new_args.insert(0, arg);
+                            new_args.insert(0, String::from(arg));
                         }
 
-                        args = new_args.into_iter().into();
+                        args = new_args.iter();
                     } else {
                         command = &cmd;
                     }
@@ -263,53 +387,6 @@ impl Shell {
         print!("warn: ");
         cod::decolor();
         println!("{}", w);
-    }
-}
-
-// TODO: figure out how to do this with a HashMap without the borrowing issues
-#[derive(Debug, Clone)]
-struct Aliases {
-    keys: Vec<String>,
-    vals: Vec<String>,
-}
-
-impl Aliases {
-    pub fn new() -> Self {
-        Aliases {
-            keys: Vec::new(),
-            vals: Vec::new(),
-        }
-    }
-
-    pub fn set(&mut self, key: String, val: String) {
-        for i in 0..self.keys.len() {
-            if self.keys[i] == key {
-                self.vals[i] = val;
-                return;
-            }
-        }
-
-        self.keys.insert(0, key);
-        self.vals.insert(0, val);
-    }
-
-    pub fn get(&self, key: String) -> Option<String> {
-        for i in 0..self.keys.len() {
-            if self.keys[i] == key {
-                return Some(self.vals[i].clone());
-            }
-        }
-
-        None
-    }
-
-    pub fn pairs(&self) -> Vec<(String, String)> {
-        let mut out = Vec::new();
-        for i in 0..self.keys.len() {
-            out.insert(out.len(), (self.keys[i].clone(), self.vals[i].clone()));
-        }
-
-        out
     }
 }
 

@@ -75,6 +75,7 @@ checksum = "201de327520df007757c1f0adce6e827fe8562fbc28bfd9c15571c66ca1f5f79"
 [[package]]
 name = "liner"
 version = "0.4.3"
+source = "git+https://github.com/Kyllingene/liner#3f331a412be493f75c3d11ed75df70767f81624f"
 dependencies = [
  "bytecount",
  "termion",

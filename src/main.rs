@@ -7,7 +7,12 @@ use std::{env, path};
 
 use dirs::home_dir;
 use liner::{Context, KeyBindings};
-use regex::Regex;
+
+mod prompt;
+use prompt::Prompt;
+
+mod aliases;
+use aliases::Aliases;
 
 trait SplitWithQuotes {
     type Output;
@@ -54,135 +59,6 @@ impl SplitWithQuotes for &str {
         }
 
         split
-    }
-}
-
-// TODO: figure out how to do this with a HashMap without the borrowing issues
-#[derive(Debug, Clone)]
-struct Aliases {
-    keys: Vec<String>,
-    vals: Vec<String>,
-}
-
-impl Aliases {
-    pub fn new() -> Self {
-        Aliases {
-            keys: Vec::new(),
-            vals: Vec::new(),
-        }
-    }
-
-    pub fn set(&mut self, key: String, val: String) {
-        for i in 0..self.keys.len() {
-            if self.keys[i] == key {
-                self.vals[i] = val;
-                return;
-            }
-        }
-
-        self.keys.insert(0, key);
-        self.vals.insert(0, val);
-    }
-
-    pub fn get(&self, key: String) -> Option<String> {
-        for i in 0..self.keys.len() {
-            if self.keys[i] == key {
-                return Some(self.vals[i].clone());
-            }
-        }
-
-        None
-    }
-
-    pub fn pairs(&self) -> Vec<(String, String)> {
-        let mut out = Vec::new();
-        for i in 0..self.keys.len() {
-            out.insert(out.len(), (self.keys[i].clone(), self.vals[i].clone()));
-        }
-
-        out
-    }
-}
-
-struct Git {}
-
-impl Git {
-    pub fn branch() -> Option<String> {
-        let result =
-            String::from_utf8(Command::new("git").arg("status").output().unwrap().stdout).unwrap();
-
-        if !result.starts_with("On branch ") {
-            return None;
-        }
-
-        let re = Regex::new("On branch (.*)\n").unwrap();
-        for branch in re.captures_iter(&result) {
-            return Some(String::from(&branch[1]));
-        }
-
-        None
-    }
-
-    pub fn dirty() -> Option<bool> {
-        let result =
-            String::from_utf8(Command::new("git").arg("diff").arg("--cached").output().unwrap().stdout).unwrap();
-
-        if result.starts_with("warning: Not a git repository") {
-            return None;
-        } else if result.starts_with("diff") {
-            return Some(true);
-        } else {
-            return Some(false);
-        }
-    }
-}
-
-struct Prompt {
-    pub template: String,
-    pub formatter: fn(String) -> String,
-}
-
-impl Prompt {
-    pub fn new(template: String, formatter: fn(String) -> String) -> Self {
-        Prompt {
-            template,
-            formatter,
-        }
-    }
-
-    pub fn display(&self) -> String {
-        (self.formatter)(self.template.clone())
-    }
-
-    pub fn basic_prompt(template: String) -> String {
-        template
-    }
-
-    pub fn reactive_prompt(template: String) -> String {
-        let mut out = template.replace("{pwd}", env::current_dir().unwrap().to_str().unwrap());
-
-        out = out.replace(
-            "{pwd-end}",
-            env::current_dir()
-                .unwrap()
-                .iter()
-                .last()
-                .unwrap()
-                .to_str()
-                .unwrap(),
-        );
-
-        let branch = Git::branch();
-        if branch.is_some() {
-            out = out.replace("{branch}", &branch.unwrap());
-            if Git::dirty().unwrap() {
-                out = out.replace("{dirty}", "!");
-            } else {
-                out = out.replace("{dirty}", "");
-            }
-        }
-
-        out
     }
 }
 
@@ -285,7 +161,7 @@ impl Shell {
             let mut args = parts;
 
             if command.is_none() {
-                self.exit();
+                return;
             }
 
             match command.unwrap().as_str() {

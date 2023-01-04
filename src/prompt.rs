@@ -46,6 +46,9 @@ impl Prompt {
             } else {
                 out = out.replace("{dirty}", "");
             }
+        } else {
+            out = out.replace("{branch} ", "");
+            out = out.replace("{dirty}", "");
         }
 
         out

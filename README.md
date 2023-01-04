@@ -12,6 +12,8 @@ This is a learning project. I started with [this tutorial](https://www.joshmcgui
     - customizable prompt (`set-prompt <prompt>`)
 - a `.goshrc`
 - scripts (`gosh <script>`, shebangs)
+- basic substitution
+    - `~` for home
 
 ### todo
 
@@ -19,6 +21,7 @@ This is a learning project. I started with [this tutorial](https://www.joshmcgui
 - add `exec`
 - add more customization options
     - reactive prompt
+- wildcard globbing
 
 ### license + contributing
 

@@ -17,10 +17,13 @@ This is a learning project. I started with [this tutorial](https://www.joshmcgui
 
 ### todo
 
+- finish reorganizing
 - clean up the aliases
 - add more customization options
     - more prompt replacements
 - wildcard globbing
+- `;` / `&&`
+- background processes
 
 ### license + contributing
 
@@ -31,4 +34,4 @@ This project is under the MIT license (see LICENSE.txt), as are all dependencies
 - [cod](https://crates.io/crates/cod) - color for warning/error messages
 - [dirs](https://crates.io/crates/dirs) - finding the home directory
 - [liner](https://crates.io/crates/liner) - input handling + history
-- [regex](https://crates.io/crates/regex) - getting git status
+- [regex](https://crates.io/crates/regex) - getting git status for the prompt

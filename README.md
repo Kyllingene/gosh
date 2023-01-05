@@ -1,6 +1,6 @@
 # gosh
 
-This is a learning project. I started with [this tutorial](https://www.joshmcguigan.com/blog/build-your-own-shell-rust/), then I moved on to add more features until I was happy with the end product. It's certainly not a full shell, though I may continue to add to it; in any case, I wouldn't recommend this as a daily driver.
+This is a learning project. I started with [this tutorial](https://www.joshmcguigan.com/blog/build-your-own-shell-rust/), then I moved on to add more features until I was happy with the results. It's certainly not a full shell, though I may continue to add to it; in any case, I wouldn't recommend this as a daily driver.
 
 ## features
 

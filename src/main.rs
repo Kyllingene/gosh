@@ -1,9 +1,9 @@
+use std::env;
 use std::fmt::Display;
 use std::fs::File;
-use std::io::Read;
-use std::path::Path;
+use std::io::{stderr, Read, Write};
+use std::path::{self, Path};
 use std::process::{exit, Child, Command, Stdio};
-use std::{env, path};
 
 use dirs::home_dir;
 use liner::{Context, KeyBindings};
@@ -342,10 +342,16 @@ impl Shell {
     }
 
     fn error(e: &dyn Display) {
+        let mut stderr = stderr();
+
         cod::color_fg(1);
-        print!("error: ");
+        write!(stderr, "error: ").unwrap_or_else(|_| {
+            print!("error: ");
+        });
         cod::decolor();
-        println!("{}", e);
+        writeln!(stderr, "{}", e).unwrap_or_else(|_| {
+            println!("{}", e);
+        });
     }
 
     fn warn(w: &dyn Display) {
